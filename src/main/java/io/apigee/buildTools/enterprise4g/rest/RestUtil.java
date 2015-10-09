@@ -208,6 +208,21 @@ public class RestUtil {
         }
     }
 
+    public static class KVMEntry {
+        @Key
+        public String name;
+
+        @Key
+        public String value;
+    }    
+
+    public static class KVMResponse {
+        @Key
+        public String name;
+
+        @Key
+        public List<KVMEntry> entry;
+    }
 
     static HttpRequestFactory REQUEST_FACTORY = HTTP_TRANSPORT
             .createRequestFactory(new HttpRequestInitializer() {
@@ -707,5 +722,61 @@ public class RestUtil {
     public static void setVersionRevision(String versionRevision) {
         RestUtil.versionRevision = versionRevision;
     }
+
+    /*********************************************************************************************** 
+     * KVM Mojo 
+     **/
+    public static String createKVM(ServerProfile profile, File kvmConfig)
+            throws IOException {
+
+        FileContent fContent = new FileContent("application/json", kvmConfig);
+        //testing
+        logger.debug("URL parameters API Version{}", (profile.getApi_version()));
+        logger.debug("URL parameters URL {}", (profile.getHostUrl()));
+        logger.debug("URL parameters Org{}", (profile.getOrg()));
+        logger.debug("URL parameters App {}", (profile.getApplication()));
+
+        //Forcefully validate before deployment
+        String importCmd = profile.getHostUrl() + "/"
+                + profile.getApi_version() + "/organizations/"
+                + profile.getOrg() + "/environments/test/keyvaluemaps";
+
+        HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
+                new GenericUrl(importCmd), fContent);
+        restRequest.setReadTimeout(0);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept("application/json");
+        headers.setBasicAuthentication(profile.getCredential_user(),
+                profile.getCredential_pwd());
+        restRequest.setHeaders(headers);
+
+        logger.info(PrintUtil.formatRequest(restRequest));
+
+        try {
+            HttpResponse response = restRequest.execute();
+            logger.info("output " + response.getContentType());
+            logger.info(response.parseAsString());
+            // KVMResponse kvmConf = response.parseAs(KVMResponse.class);
+            // logger.info(PrintUtil.formatResponse(response, gson.toJson(kvmConf).toString()));
+
+            //Introduce Delay
+            if (Options.delay != 0) {
+                try {
+                    logger.info("Delay of " + Options.delay + " milli second");
+                    Thread.sleep(Options.delay);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } catch (HttpResponseException e) {
+            logger.error(e.getMessage());
+            throw new IOException(e.getMessage());
+        }
+
+        return getVersionRevision();
+
+    }
+
 
 }
