@@ -35,26 +35,26 @@ import org.apache.commons.io.FileUtils;
  * Goal to upload 4g gateway  bundle on server
  * @author rmishra
  * @execute phase="install"
- * @goal kvm
+ * @goal targetserver
  * @phase install
  * 
  */
 
-public class KVMMojo extends GatewayAbstractMojo
+public class TargetServerMojo extends GatewayAbstractMojo
 {
 
-    public static String KVM_FILE   = "kvms.list";	
+    public static String TARGETSERVERS_FILE   = "targetservers.list";	
     public static String CONFIG_FOLDER = "config";	
 	
 	public static final String DEPLOYMENT_FAILED_MESSAGE = "\n\n\n* * * * * * * * * * *\n\n"
 			+ "This deployment could have failed for a variety of reasons.\n\n"
 			+ "\n\n* * * * * * * * * * *\n\n\n";
 
-	static Logger logger = LoggerFactory.getLogger(KVMMojo.class);
+	static Logger logger = LoggerFactory.getLogger(TargetServerMojo.class);
 
 	private ServerProfile serverProfile;
 	
-	public KVMMojo() {
+	public TargetServerMojo() {
 		super();
 
 	}
@@ -150,23 +150,7 @@ public class KVMMojo extends GatewayAbstractMojo
 
 	}
 
-    private void createOrgKVMsUsingListFile()
-    		throws IOException, MojoFailureException, Exception {
-        File listFile = new File(super.getBaseDirectoryPath() + 
-        						 File.separator + 
-        						 CONFIG_FOLDER +
-        						 File.separator + 
-        						 serverProfile.getOrg() + 
-        						 File.separator + 
-        						 KVM_FILE);
-		logger.debug("Org KVM List file path " + listFile);
-        File kvmListFileDirectory = listFile.getParentFile();
-        List<String> kvmFiles = FileUtils.readLines(listFile, null);
-        processKVMs(kvmFiles, kvmListFileDirectory, true);
-    }
-
-    private void createKVMsUsingListFile()
-    		throws IOException, MojoFailureException, Exception {
+    private void createTargetServerUsingListFile() throws IOException, MojoFailureException, Exception {
         File listFile = new File(super.getBaseDirectoryPath() + 
         						 File.separator + 
         						 CONFIG_FOLDER +
@@ -175,27 +159,27 @@ public class KVMMojo extends GatewayAbstractMojo
         						 File.separator + 
         						 serverProfile.getEnvironment() + 
         						 File.separator + 
-        						 KVM_FILE);
-		logger.debug("Env KVM List file path " + listFile);
-        File kvmListFileDirectory = listFile.getParentFile();
-        List<String> kvmFiles = FileUtils.readLines(listFile, null);
-        processKVMs(kvmFiles, kvmListFileDirectory, false);
+        						 TARGETSERVERS_FILE);
+		logger.debug("List file path " + listFile);
+        File targetServerListFileDirectory = listFile.getParentFile();
+        List<String> targetServerFiles = FileUtils.readLines(listFile, null);
+        processTarserv(targetServerFiles, targetServerListFileDirectory);
     }
 
-    private void processKVMs(List<String> kvmFiles, File kvmListFileDirectory, boolean orgLevel)
-    		throws IOException, MojoFailureException, Exception {
-        for (String kvmFileString : kvmFiles) {
-            if (isCommentOrBlank(kvmFileString)) {
+    private void processTarserv(List<String> targetServerFiles, File targetServerListFileDirectory) throws IOException, MojoFailureException, Exception {
+        for (String targetServerFileString : targetServerFiles) {
+            if (isCommentOrBlank(targetServerFileString)) {
                 continue;
             }
-            File kvmFile = new File(kvmFileString);
-            if (kvmFile.isAbsolute()) {
-                doUpdate(kvmFile, orgLevel);
+            File targetServerFile = new File(targetServerFileString);
+            if (targetServerFile.isAbsolute()) {
+                doUpdate(targetServerFile);
             } else {
-                doUpdate(new File(kvmListFileDirectory, kvmFileString), orgLevel);
+                doUpdate(new File(targetServerListFileDirectory, targetServerFileString));
             }
         }
     }
+
 
     private boolean isCommentOrBlank(String productFileString) {
         if (productFileString.length() == 0 || productFileString.trim().length() == 0
@@ -206,14 +190,14 @@ public class KVMMojo extends GatewayAbstractMojo
     }
 
 	/**
-	 * create KVM values
+	 * create Target Server values
 	 */
-	protected void doUpdate(File kvmConfig, boolean orgLevel) throws IOException, MojoFailureException, Exception {
+	protected void doUpdate(File targetServerConfig) throws IOException, MojoFailureException, Exception {
 		try {
 			
-			logger.info("\n\n=============Creating KVM================\n\n");
+			logger.info("\n\n=============Creating TargetServer================\n\n");
 			// state = State.IMPORTING;
-			bundleRevision = RestUtil.createKVM(super.getProfile(), kvmConfig, orgLevel);
+			bundleRevision = RestUtil.createTargetServer(super.getProfile(), targetServerConfig);
 		
 		} catch (IOException e) {
 			throw e;
@@ -234,8 +218,9 @@ public class KVMMojo extends GatewayAbstractMojo
 			fixOSXNonProxyHosts();
 			
 			init();
-			createOrgKVMsUsingListFile();
-			createKVMsUsingListFile();
+
+			createTargetServerUsingListFile();
+			
 			state = State.COMPLETE;
 			
 		} catch (MojoFailureException e) {
@@ -263,8 +248,6 @@ public class KVMMojo extends GatewayAbstractMojo
 
 	}
 
-	
-	
 }
 
 

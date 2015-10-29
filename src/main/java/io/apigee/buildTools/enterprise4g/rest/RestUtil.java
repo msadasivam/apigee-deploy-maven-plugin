@@ -20,6 +20,7 @@ import io.apigee.buildTools.enterprise4g.utils.ServerProfile;
 import io.apigee.buildTools.enterprise4g.utils.StringToIntComparator;
 import com.google.api.client.http.*;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.http.json.JsonHttpContent;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson.JacksonFactory;
 import com.google.api.client.testing.http.MockHttpContent;
@@ -28,6 +29,7 @@ import com.google.api.client.util.Key;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +39,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
+import java.util.Map;
+import java.util.HashMap;
 
 public class RestUtil {
 
@@ -724,12 +727,12 @@ public class RestUtil {
     }
 
     /*********************************************************************************************** 
-     * KVM Mojo 
+     * Cache Mojo 
      **/
-    public static String createKVM(ServerProfile profile, File kvmConfig)
+    public static String createCache(ServerProfile profile, File cacheConfig)
             throws IOException {
 
-        FileContent fContent = new FileContent("application/json", kvmConfig);
+        FileContent fContent = new FileContent("application/json", cacheConfig);
         //testing
         logger.debug("URL parameters API Version{}", (profile.getApi_version()));
         logger.debug("URL parameters URL {}", (profile.getHostUrl()));
@@ -739,7 +742,8 @@ public class RestUtil {
         //Forcefully validate before deployment
         String importCmd = profile.getHostUrl() + "/"
                 + profile.getApi_version() + "/organizations/"
-                + profile.getOrg() + "/environments/test/keyvaluemaps";
+                + profile.getOrg() + "/environments/"
+                + profile.getEnvironment() + "/caches";
 
         HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
                 new GenericUrl(importCmd), fContent);
@@ -779,12 +783,253 @@ public class RestUtil {
     }
 
     /*********************************************************************************************** 
-     * Cache Mojo 
+     * Vault Mojo 
      **/
-    public static String createCache(ServerProfile profile, File cacheConfig)
+    public static String createVault(ServerProfile profile, File vaultConfig, boolean orgLevel)
             throws IOException {
 
-        FileContent fContent = new FileContent("application/json", cacheConfig);
+        //testing
+        logger.debug("URL parameters API Version{}", (profile.getApi_version()));
+        logger.debug("URL parameters URL {}", (profile.getHostUrl()));
+        logger.debug("URL parameters Org{}", (profile.getOrg()));
+        logger.debug("URL parameters App {}", (profile.getApplication()));
+
+        //Forcefully validate before deployment
+        String importCmd = profile.getHostUrl() + "/"
+                + profile.getApi_version() + "/organizations/"
+                + profile.getOrg();
+
+        String vaultName = FilenameUtils.removeExtension(vaultConfig.getName());
+        Map<String, String> json = new HashMap<String, String>();
+        json.put("name", vaultName);
+        final HttpContent fContent = new JsonHttpContent(new JacksonFactory(), json);
+
+        logger.info("vault name payload " + json.toString());
+
+        if (orgLevel) {
+            importCmd += "/vaults";
+        } else {
+            importCmd += "/environments/" + profile.getEnvironment() + "/vaults";
+        }
+
+        HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
+                new GenericUrl(importCmd), fContent);
+        restRequest.setReadTimeout(0);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept("application/json");
+        headers.setBasicAuthentication(profile.getCredential_user(),
+                profile.getCredential_pwd());
+        restRequest.setHeaders(headers);
+
+        logger.info(PrintUtil.formatRequest(restRequest));
+
+        try {
+            HttpResponse response = restRequest.execute();
+            logger.info("output " + response.getContentType());
+            logger.info(response.parseAsString());
+            // KVMResponse kvmConf = response.parseAs(KVMResponse.class);
+            // logger.info(PrintUtil.formatResponse(response, gson.toJson(kvmConf).toString()));
+
+            //Introduce Delay
+            if (Options.delay != 0) {
+                try {
+                    logger.info("Delay of " + Options.delay + " milli second");
+                    Thread.sleep(Options.delay);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } catch (HttpResponseException e) {
+            logger.error(e.getMessage());
+            throw new IOException(e.getMessage());
+        }
+
+        return getVersionRevision();
+
+    }
+
+    public static String createVaultEntries(ServerProfile profile, File vaultConfig, boolean orgLevel)
+            throws IOException {
+
+        FileContent fContent = new FileContent("application/json", vaultConfig);
+        //testing
+        logger.debug("URL parameters API Version{}", (profile.getApi_version()));
+        logger.debug("URL parameters URL {}", (profile.getHostUrl()));
+        logger.debug("URL parameters Org{}", (profile.getOrg()));
+        logger.debug("URL parameters App {}", (profile.getApplication()));
+
+        //Forcefully validate before deployment
+        String importCmd = profile.getHostUrl() + "/"
+                + profile.getApi_version() + "/organizations/"
+                + profile.getOrg();
+
+        String vaultName = FilenameUtils.removeExtension(vaultConfig.getName());
+
+        if (orgLevel) {
+            importCmd += "/vaults/" + vaultName + "/entries";
+        } else {
+            importCmd += "/environments/" + profile.getEnvironment() + "/vaults/" + vaultName + "/entries";
+        }
+
+        HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
+                new GenericUrl(importCmd), fContent);
+        restRequest.setReadTimeout(0);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept("application/json");
+        headers.setBasicAuthentication(profile.getCredential_user(),
+                profile.getCredential_pwd());
+        restRequest.setHeaders(headers);
+
+        logger.info(PrintUtil.formatRequest(restRequest));
+
+        try {
+            HttpResponse response = restRequest.execute();
+            logger.info("output " + response.getContentType());
+            logger.info(response.parseAsString());
+            // KVMResponse kvmConf = response.parseAs(KVMResponse.class);
+            // logger.info(PrintUtil.formatResponse(response, gson.toJson(kvmConf).toString()));
+
+            //Introduce Delay
+            if (Options.delay != 0) {
+                try {
+                    logger.info("Delay of " + Options.delay + " milli second");
+                    Thread.sleep(Options.delay);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } catch (HttpResponseException e) {
+            logger.error(e.getMessage());
+            throw new IOException(e.getMessage());
+        }
+
+        return getVersionRevision();
+    }
+
+    /*********************************************************************************************** 
+     * APIProduct Mojo 
+     **/
+    public static String createAPIProduct(ServerProfile profile, File apiproductConfig)
+            throws IOException {
+
+        FileContent fContent = new FileContent("application/json", apiproductConfig);
+        //testing
+        logger.debug("URL parameters API Version{}", (profile.getApi_version()));
+        logger.debug("URL parameters URL {}", (profile.getHostUrl()));
+        logger.debug("URL parameters Org{}", (profile.getOrg()));
+        logger.debug("URL parameters App {}", (profile.getApplication()));
+
+        //Forcefully validate before deployment
+        String importCmd = profile.getHostUrl() + "/"
+                + profile.getApi_version() + "/organizations/"
+                + profile.getOrg() + "/apiproducts";
+
+        HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
+                new GenericUrl(importCmd), fContent);
+        restRequest.setReadTimeout(0);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept("application/json");
+        headers.setBasicAuthentication(profile.getCredential_user(),
+                profile.getCredential_pwd());
+        restRequest.setHeaders(headers);
+
+        logger.info(PrintUtil.formatRequest(restRequest));
+
+        try {
+            HttpResponse response = restRequest.execute();
+            logger.info("output " + response.getContentType());
+            logger.info(response.parseAsString());
+            // KVMResponse kvmConf = response.parseAs(KVMResponse.class);
+            // logger.info(PrintUtil.formatResponse(response, gson.toJson(kvmConf).toString()));
+
+            //Introduce Delay
+            if (Options.delay != 0) {
+                try {
+                    logger.info("Delay of " + Options.delay + " milli second");
+                    Thread.sleep(Options.delay);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } catch (HttpResponseException e) {
+            logger.error(e.getMessage());
+            throw new IOException(e.getMessage());
+        }
+
+        return getVersionRevision();
+
+    }
+
+    /*********************************************************************************************** 
+     * KVM Mojo 
+     **/
+    public static String createKVM(ServerProfile profile, File kvmConfig, boolean orgLevel)
+            throws IOException {
+
+        FileContent fContent = new FileContent("application/json", kvmConfig);
+        //testing
+        logger.debug("URL parameters API Version{}", (profile.getApi_version()));
+        logger.debug("URL parameters URL {}", (profile.getHostUrl()));
+        logger.debug("URL parameters Org{}", (profile.getOrg()));
+        logger.debug("URL parameters App {}", (profile.getApplication()));
+
+        //Forcefully validate before deployment
+        String importCmd = profile.getHostUrl() + "/"
+                + profile.getApi_version() + "/organizations/"
+                + profile.getOrg();
+
+        if (orgLevel) {
+            importCmd += "/keyvaluemaps/";
+        } else {
+            importCmd += "/environments/" + profile.getEnvironment() + "/keyvaluemaps/";
+        }
+
+        HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
+                new GenericUrl(importCmd), fContent);
+        restRequest.setReadTimeout(0);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept("application/json");
+        headers.setBasicAuthentication(profile.getCredential_user(),
+                profile.getCredential_pwd());
+        restRequest.setHeaders(headers);
+
+        logger.info(PrintUtil.formatRequest(restRequest));
+
+        try {
+            HttpResponse response = restRequest.execute();
+            logger.info("output " + response.getContentType());
+            logger.info(response.parseAsString());
+            // KVMResponse kvmConf = response.parseAs(KVMResponse.class);
+            // logger.info(PrintUtil.formatResponse(response, gson.toJson(kvmConf).toString()));
+
+            //Introduce Delay
+            if (Options.delay != 0) {
+                try {
+                    logger.info("Delay of " + Options.delay + " milli second");
+                    Thread.sleep(Options.delay);
+                } catch (InterruptedException e) {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+        } catch (HttpResponseException e) {
+            logger.error(e.getMessage());
+            throw new IOException(e.getMessage());
+        }
+
+        return getVersionRevision();
+    }
+
+    /*********************************************************************************************** 
+     * TargetServer Mojo 
+     **/
+    public static String createTargetServer(ServerProfile profile, File targetServerConfig)
+            throws IOException {
+
+        FileContent fContent = new FileContent("application/json", targetServerConfig);
         //testing
         logger.debug("URL parameters API Version{}", (profile.getApi_version()));
         logger.debug("URL parameters URL {}", (profile.getHostUrl()));
@@ -795,7 +1040,7 @@ public class RestUtil {
         String importCmd = profile.getHostUrl() + "/"
                 + profile.getApi_version() + "/organizations/"
                 + profile.getOrg() + "/environments/"
-                + profile.getEnvironment() + "/caches";
+                + profile.getEnvironment() + "/targetservers";
 
         HttpRequest restRequest = REQUEST_FACTORY.buildPostRequest(
                 new GenericUrl(importCmd), fContent);
