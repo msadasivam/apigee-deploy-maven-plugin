@@ -34,9 +34,9 @@ import org.apache.commons.io.FileUtils;
 /**                                                                                                                                     ¡¡
  * Goal to upload 4g gateway  bundle on server
  * @author rmishra
- * @execute phase="install"
+ * @execute phase="package"
  * @goal apiproduct
- * @phase install
+ * @phase package
  * 
  */
 
