@@ -50,8 +50,8 @@
             },
             {
               "vaultName": "backend_vault",
-              "name": "user",
-              "value": "john"
+              "name": "password",
+              "value": "default"
             }
         ]      
     },
@@ -59,56 +59,46 @@
         "profile": "test",
         "target_servers": [
             {
-              "name" : "sapbackend",
-              "host" : "sapbackend",
+              "name" : "SOAPbackend",
+              "host" : "SOAPbackend",
               "isEnabled" : true,
-              "port" : 8080
+              "port" : 80
             }
         ],
         "caches": [
             {
-              "name" : "din_cache",
-              "description" : "Caches Din - access token map details",
+              "name" : "quote_cache",
+              "description" : "Quotes Cache",
               "diskSizeInMB" : 0,
               "expirySettings" : {
                 "timeoutInSec" : {
-                  "value" : "10800"
+                  "value" : "30000"
                 },
                 "valuesNull" : false
-              },
-              "inMemorySizeInKB" : 0,
-              "maxElementsInMemory" : 100,
-              "maxElementsOnDisk" : 1000,
-              "overflowToDisk" : true,
-              "persistent" : false,
-              "skipCacheIfElementSizeInKBExceeds" : 1024
+              }
             }
         ],
         "kvms": [
             {
                 "entry": [
                     {
-                        "name": "splunk_server",
-                        "value": "localhost3"
-                    },
-                    {
-                        "name": "splunk_port",
-                        "value": "8082"
+                        "name": "backendenv",
+                        "value": "test"
                     }
                 ],
-                "name": "splunk_configurations_env"
+                "name": "backend_end"
             }
         ],
         "vaults": [
             {
               "vaultName": "backend_vault",
               "name": "user",
-              "value": "john"
+              "value": "michael"
             },
             {
               "vaultName": "backend_vault",
-              "name": "user",
-              "value": "john"
+              "name": "password",
+              "value": "foobar"
             }
         ]
     },
@@ -118,15 +108,15 @@
             {
                 "entry": [
                     {
-                        "name": "splunk_server",
-                        "value": "localhost3"
+                        "name": "max_args",
+                        "value": "3"
                     },
                     {
-                        "name": "splunk_port",
-                        "value": "8082"
+                        "name": "username_length",
+                        "value": "30"
                     }
                 ],
-                "name": "splunk_configurations_env"
+                "name": "api_defaults"
             }
         ]
     }
